@@ -1,0 +1,1 @@
+typescript gulp-cli lerna create-react-app gatsby-cli create-next-app create-ink-app elm elm-test elm-format elm-analyse create-elm-app express-generator express-generator-typescript @nestjs/cli typeorm @cloudflare/wrangler netlify-cli 

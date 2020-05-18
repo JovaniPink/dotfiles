@@ -103,19 +103,3 @@ fi
 if [ "$(umask)" = "0000" ]; then
   umask 0022
 fi
-
-# Launch graphical apps with MobaXTerm.
-#   Requires: https://mobaxterm.mobatek.net/ (or alternative X-Server)
-export DISPLAY=:0
-
-# Configure the WSL Docker CLI to use the Docker for Windows daemon.
-#   Requires: https://docs.docker.com/docker-for-windows/install/
-export DOCKER_HOST=tcp://localhost:2375
-
-# Enable chruby.
-#   Requires: https://github.com/postmodern/chruby
-source /usr/local/share/chruby/chruby.sh
-
-# Enable a nicer reverse search experience.
-#   Requires: https://github.com/junegunn/fzf
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
