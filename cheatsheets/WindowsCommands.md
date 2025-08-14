@@ -1,87 +1,155 @@
-# Windows Command Line Tools
+# Windows Command Line (CMD) & PowerShell Cheatsheet
 
-The following commands are for the Windows Operating system.
+> **Heads-up:** This file is about **Windows**, not Linux. Consider renaming it to `WindowsCommands.md` or splitting Windows and Linux into separate files (e.g., `WindowsCommands.md` and `LinuxCommands.md`).
 
-[Windows Commands Docs](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/windows-commands)
+**Official docs:** <https://learn.microsoft.com/windows-server/administration/windows-commands/windows-commands>
 
-You could access all help messages with: COMMAND /?
+---
 
-[Windows Task Manager: The Complete Guide](https://www.howtogeek.com/405806/windows-task-manager-the-complete-guide/)
+## Conventions
 
-## Windows General
+- `CMD` examples use `%VARS%` and backslashes. PowerShell (PS) uses `$env:VARS` and forward slashes are fine.
+- Commands marked with `🔒` typically require **elevated/Administrator** shell.
+- Add `/?` to most commands for inline help.
 
-PC name: hostname
-...Used to display the host name portion of the full computer name of the computer.
+---
 
-Reboot immediately: shutdown -r -t 0
+## System & Power
 
-Shutdown immediately: shutdown -s -t 0
+- **Computer name**: `hostname`
+- **Windows version**: `ver`, `systeminfo`
+- **Restart now**: `shutdown /r /t 0`
+- **Shutdown now**: `shutdown /s /t 0`
+- **Cancel pending shutdown**: `shutdown /a`
 
-## Users
+---
 
-Username: echo %username%
+## Users & Sessions
 
-list users: query user
+- **Current user**: `whoami` or `echo %USERNAME%`
+- **List logged-on users (RDS/Terminal Services)**: `query user`
+- **List sessions**: `query session`
+- **Log off (by ID or name)**: `logoff <SESSION_ID>` or `logoff <SESSION_NAME>`
+- **Local users**: `net user`
+- **Local groups**: `net localgroup`
+- **Run as different user**: `runas /user:DOMAIN\User cmd`
 
-list sessions: query session
+---
 
-logoff by user: logoff sessionnumber
+## Navigation & Filesystem
 
-logoff by session: logoff sessionname
+- **Change directory**: `cd` or `chdir`
+- **List directory**: `dir`
+- **Tree view**: `tree /f`
+- **Print file**: `type <file>` | page through: `more <file>`
+- **Search text**: `findstr /i /n "pattern" <file>`
+- **Where is a program**: `where <name>` (PowerShell: `Get-Command <name> | Select-Object -Expand Source`)
 
-## Active Directory
+---
 
-[Active Directory Troubleshooting: Tools and Practices](https://statemigration.com/active-directory-troubleshooting-tools-and-practices/)
+## Files & Directories
 
-## Navigation
+- **Make/Delete directory**: `mkdir <dir>`, `rmdir /s /q <dir>`
+- **Copy files**: `copy <src> <dst>`
+- **Robust copy**: `robocopy <src> <dst> /e` (mirror: `/mir`) 🔒
+- **Legacy recursive copy**: `xcopy <src> <dst> /e /h /i`
+- **Move/Rename**: `move <src> <dst>`, `ren <old> <new>`
+- **Delete files**: `del /f /s /q <pattern>`
+- **Attributes**: `attrib +/-r +/-h +/-s <file>`
+- **Symbolic links**: `mklink <link> <target>` (file) | `mklink /d <link> <target>` (dir) 🔒
 
-Viewing directory contents: dir and ls
-
-## File Management
-
-
+---
 
 ## Processes
 
-View running processes: tasklist
+- **List processes**: `tasklist`
+- **List with details**: `tasklist /v`
+- **Console-session only**: `tasklist /fi "SESSIONNAME eq Console"`
+- **Kill by name**: `taskkill /f /im <process>.exe`
+- **Kill by PID**: `taskkill /f /pid <PID>`
 
-View console processes: tasklist /FI “SESSIONNAME eq Console”
+> **PowerShell equivalents:** `Get-Process`, `Stop-Process -Id <PID> -Force`
 
-View user processes: query process user
-
-Kill processes by name: taskkill /F /IM processname.exe
-
-Kill processes by PID: taskkill /F /PID XXX
+---
 
 ## Services
 
-Running services: net start
+- **List running services**: `net start`
+- **Query service**: `sc query <service>` or `sc queryex type= service state= all`
+- **Start/Stop**: `sc start <service>`, `sc stop <service>` 🔒
 
-## Network
+> **PowerShell:** `Get-Service <name>`, `Start-Service <name>`, `Stop-Service <name>`
 
-Echo reply: ping 192.168.0.1 or ping
-... Used to check connectivity between networking devices.
+---
 
-View route to host: tracert 192.168.0.1
-... Used to view the entire path a packet takes to get from one device to another.
+## Networking & DNS
 
-Route to host with latency and network loss: pathping 192.168.0.1
-...
+- **Reachability (ICMP)**: `ping <host>`
+- **Trace route**: `tracert <host>`
+- **Path + loss/latency**: `pathping <host>`
+- **IP configuration**: `ipconfig /all`
+- **Renew DHCP**: `ipconfig /release` then `ipconfig /renew` 🔒
+- **DNS cache**: `ipconfig /displaydns`, `ipconfig /flushdns` 🔒
+- **TCP/UDP connections**: `netstat -ano` (add `-b` for binaries 🔒)
+- **ARP table**: `arp -a`
+- **Routing table**: `route print`
+- **Add route**: `route add <network> mask <mask> <gateway> metric 1` 🔒
+- **DNS lookup**: `nslookup <name>` (interactive: just `nslookup`)
+- **Firewall (quick check)**: `netsh advfirewall show allprofiles` 🔒
 
-View DNS: nslookup /ls
-...Used to troubleshoot DNS name resolution issues.
+> **PowerShell:** `Test-Connection <host>`, `Resolve-DnsName <name>`, `Get-NetIPConfiguration`, `Get-NetTCPConnection`
 
-View network settings: ipconfig /all
-... Used to view TCP/IP configuration.
+---
 
-View TCP/UDP connections: netstat
-... Used to display TCP/IP statistics and connections.
+## Active Directory (domain-joined machines)
+>
+> Requires **RSAT** tools or admin station. Availability varies by Windows edition.
 
-View ARP cache: arp /a
-... Used to display and modify entries in the Address Resolution Protocol "ARP" cache.
+- **Find domain controller**: `nltest /dsgetdc:<domain>`
+- **List domain controllers**: `netdom query dc`
+- **Query users (legacy tools)**: `dsquery user -name "john*"`
+- **Group membership**: `whoami /groups` (quick), or `dsget user <DN> -memberof`
+- **Group Policy result**: `gpresult /r`
 
-## Utils
+> **PowerShell (RSAT ActiveDirectory module):** `Get-ADUser -Identity <samAccountName> -Properties *`
 
-## PowerShell
+---
 
-[PowerShell Documentation](https://docs.microsoft.com/en-us/powershell/)
+## Utilities & Diagnostics
+
+- **Compare files**: `fc <file1> <file2>`
+- **Hashes**: `certutil -hashfile <file> SHA256`
+- **Scheduled tasks**: `schtasks /query /fo LIST /v`
+- **Registry (read)**: `reg query HKLM\Software\...`
+- **HTTP requests**: `curl https://example.com` (included on Win10+)
+- **Environment vars**: `set` (list), `set NAME=value` (temp for session)
+
+---
+
+## PowerShell Basics (quick map)
+
+- **Current user**: `$env:USERNAME`
+- **List dir**: `Get-ChildItem` (`gci`, `ls`)
+- **Change dir**: `Set-Location` (`cd`)
+- **Read file**: `Get-Content` (`gc`)
+- **Search text**: `Select-String -Pattern "foo" -Path .\*.log` (`sls`)
+- **Copy/Move/Delete**: `Copy-Item` (`cp`), `Move-Item` (`mv`), `Remove-Item -Recurse -Force` (`rm`)
+- **Processes/Services**: `Get-Process` (`gps`), `Get-Service` (`gsv`)
+
+---
+
+## Safety Notes
+
+- Many networking, service, and filesystem operations require **Administrator** privileges. If a command fails with `Access is denied`, reopen the shell as Admin.
+- On corporate devices, security tooling and policy (AppLocker, SRP, Defender) may block some commands.
+
+---
+
+## References
+
+- Windows commands index (Microsoft Learn)
+- PowerShell docs: <https://learn.microsoft.com/powershell/>
+- PowerShell Gallery: <https://www.powershellgallery.com/>
+- PowerShell Cheat Sheet: <https://learn.microsoft.com/powershell/scripting/learn/ps101/cheat-sheet>
+- PowerShell Scripting Guide: <https://learn.microsoft.com/powershell/scripting/learn/ps101/ps101-scripting-guide>
+- PowerShell Best Practices: <https://learn.microsoft.com/powershell/scripting/learn/deep-dives/best-practices>

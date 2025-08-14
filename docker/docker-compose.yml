@@ -1,6 +1,5 @@
-version: '3.1'
+version: "3.1"
 services:
-
   db:
     image: postgres
     restart: always
@@ -10,3 +9,51 @@ services:
       POSTGRES_DB: default_db
     ports:
       - 54320:5432
+
+# Compose spec uses the latest schema automatically; the old `version:` key is obsolete.
+# See: https://docs.docker.com/reference/compose-file/version-and-name/
+name: dev-postgres
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      # Use `.env` (auto-loaded by Compose) or override via shell. Defaults shown.
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-default_db}
+      # Prefer secrets over inline passwords; see top-level `secrets:` below.
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      # Store cluster in a subdir to avoid permission edge cases and make bind-mounts cleaner.
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-54320}:5432"
+    volumes:
+      # Named volume for persistent data
+      - pgdata:/var/lib/postgresql/data
+      # Optional: place any `*.sql` or `*.sh` here to seed a fresh cluster
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Use CMD-SHELL so env expands inside the container; `$$` escapes $ from Compose
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Increase shared memory to prevent rare /dev/shm exhaustion under heavier workloads
+    shm_size: "256m"
+    secrets:
+      - postgres_password
+
+volumes:
+  pgdata: {}
+
+secrets:
+  postgres_password:
+    # Create this file with your password (no newline):
+    #   mkdir -p docker/secrets && printf '%s' 'strong-password-here' > docker/secrets/postgres_password.txt
+    file: ./secrets/postgres_password.txt
